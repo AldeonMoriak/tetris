@@ -489,18 +489,18 @@ const resetGame = () => {
             <button
               type="button"
               class="rounded-full shadow bg-purple-400 w-25px h-25px"
-              v-on="{ mousedown: mouseDownLeft, mouseup: mouseUpLeft }"
+            @click="moveLeft"
             ></button>
             <button
               type="button"
               class="rounded-full shadow bg-purple-400 w-25px h-25px"
-              v-on="{ mousedown: mouseDownRight, mouseup: mouseUpRight }"
+              @click="moveRight"
             ></button>
           </div>
           <button
             type="button"
             class="rounded-full shadow bg-purple-400 w-25px h-25px mx-auto"
-            v-on="{ mousedown: mouseDownDown, mouseup: mouseUpDown }"
+            @click="moveDown"
           ></button>
         </div>
       </div>
