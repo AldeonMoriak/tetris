@@ -374,7 +374,7 @@ const toggleGame = () => {
     clearInterval(timer);
     timer = -1;
   } else {
-    timer = setInterval(moveDown, 1000);
+    timer = setInterval(moveDown, 500);
     isPaused.value = false;
     // drawGhost();
   }
@@ -407,6 +407,7 @@ const addScore = () => {
       row.forEach((cell) => {
         availableCells.value[cell].class = "";
         availableCells.value[cell].isTaken = false;
+        availableCells.value[cell].isOccupied = false;
       });
       const removedCells = availableCells.value.splice(i, 10);
       availableCells.value = removedCells.concat(availableCells.value);
@@ -465,7 +466,7 @@ const resetGame = () => {
     <div class="flex mx-auto max-w-md py-15">
       <div class="flex flex-col">
         <div
-          class="w-200px h-400px flex flex-wrap bg-white shadow-inner rounded"
+          class="w-200px h-400px flex flex-wrap bg-gray-50 shadow-inner rounded"
         >
           <div
             v-for="(cell, index) in availableCells"
@@ -473,33 +474,33 @@ const resetGame = () => {
             :class="[
               cell.isTaken ? 'opacity-80 ' + cell.class : cell.class,
               cell.isGhost && !cell.isOccupied ? 'opacity-30 bg-pink-500 ' : '',
-              cell.isOccupied ? cell.class + ' border border-gray-100 ' : '',
+              cell.isOccupied ? cell.class + ' border border-gray-100 ' : cell.isBedRock ? '' : 'border border-gray-200',
               cell.isBedRock ? '' : ' ',
-              'w-20px h-20px ',
+              'w-20px h-20px rounded',
             ]"
           ></div>
         </div>
-        <div class="flex flex-col mt-5">
+        <div class="flex-col mt-5 flex md:hidden">
           <button
             type="button"
-            class="rounded-full shadow bg-purple-400 w-25px h-25px mx-auto"
+            class=" shadow bg-purple-400 w-10 h-10 rounded-xl mx-auto"
             @click="rotate"
           ></button>
           <div class="flex justify-between">
             <button
               type="button"
-              class="rounded-full shadow bg-purple-400 w-25px h-25px"
+            class=" shadow bg-purple-400 w-10 h-10 rounded-xl mx-auto"
             @click="moveLeft"
             ></button>
             <button
               type="button"
-              class="rounded-full shadow bg-purple-400 w-25px h-25px"
+            class=" shadow bg-purple-400 w-10 h-10 rounded-xl mx-auto"
               @click="moveRight"
             ></button>
           </div>
           <button
             type="button"
-            class="rounded-full shadow bg-purple-400 w-25px h-25px mx-auto"
+            class=" shadow bg-purple-400 w-10 h-10 rounded-xl mx-auto"
             @click="moveDown"
           ></button>
         </div>
@@ -511,7 +512,7 @@ const resetGame = () => {
             :key="index + 'preview'"
             :class="[
               cell.isOccupied ? cell.class + ' border border-gray-100 ' : '',
-              'w-20px h-20px',
+              'w-20px h-20px rounded',
             ]"
           ></div>
         </div>
