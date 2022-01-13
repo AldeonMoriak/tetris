@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, onDeactivated } from "vue";
+import { ref, computed, onDeactivated, watch } from "vue";
 
 // defineProps<{ msg: string }>();
 
@@ -12,6 +12,7 @@ interface Cell {
 }
 
 const width = 10;
+const gameSpeed = ref(1000);
 const previewWidth = 4;
 const score = ref(0);
 const message = ref("");
@@ -26,6 +27,13 @@ for (let i = 0; i < 200; i++) {
   const cell: Cell = { class: "", isTaken: false, isOccupied: false };
   availableCells.value.push(cell);
 }
+
+watch(() => score.value,
+(currentScore, previousScore) => {
+  if(currentScore % 500 === 0 && currentScore !== 0) {
+    gameSpeed.value -=100;
+  }
+});
 
 // fill the bedrock with taken cells
 for (let i = 0; i < 10; i++) {
@@ -231,6 +239,9 @@ const undrawGhost = () => {
 };
 
 const moveDown = () => {
+  if(isGameOver.value) {
+    return;
+  }
   // undrawGhost();
   freeze();
   undrawPreview();
@@ -243,6 +254,7 @@ const moveDown = () => {
 };
 
 const moveLeft = () => {
+  if(isGameOver.value)return
   undraw();
   // undrawGhost();
   const isAtTheEdge = isAtTheEdges("left");
@@ -255,6 +267,7 @@ const moveLeft = () => {
 };
 
 const moveRight = () => {
+  if(isGameOver.value)return
   undraw();
   // undrawGhost();
   const isAtTheEdge = isAtTheEdges("right");
@@ -269,11 +282,11 @@ const moveRight = () => {
 const isAtTheEdges = (direction: string) => {
   return direction === "right"
     ? current.value.some(
-        (cellNumber) => (currentPosition.value + cellNumber + 1) % width === 0
-      )
+      (cellNumber) => (currentPosition.value + cellNumber + 1) % width === 0
+    )
     : current.value.some(
-        (cellNumber) => (currentPosition.value + cellNumber) % width === 0
-      );
+      (cellNumber) => (currentPosition.value + cellNumber) % width === 0
+    );
 };
 const isCellBlocked = () => {
   return current.value.some(
@@ -301,6 +314,7 @@ const checkRotatedPosition = (P?: number) => {
 };
 
 const rotate = () => {
+  if(isGameOver.value)return
   undraw();
   // undrawGhost();
 
@@ -337,6 +351,7 @@ const keyController = (e: KeyboardEvent) => {
     case "arrowdown": {
       e.preventDefault();
       moveDown();
+      if(!isGameOver.value) score.value += 1;
       break;
     }
     case "arrowup": {
@@ -374,7 +389,7 @@ const toggleGame = () => {
     clearInterval(timer);
     timer = -1;
   } else {
-    timer = setInterval(moveDown, 500);
+    timer = setInterval(moveDown, gameSpeed.value);
     isPaused.value = false;
     // drawGhost();
   }
@@ -462,12 +477,10 @@ const resetGame = () => {
 </script>
 
 <template>
-  <div class="bg-teal-100 h-screen">
-    <div class="flex mx-auto max-w-md py-15">
+  <div class="bg-gray-200 min-h-screen">
+    <div class="flex lg:mx-auto max-w-md py-3 lg:py-15">
       <div class="flex flex-col">
-        <div
-          class="w-200px h-400px flex flex-wrap bg-gray-50 shadow-inner rounded"
-        >
+        <div class="w-200px h-400px lg:(w-300px h-600px) flex flex-wrap bg-gray-50 shadow-inner rounded">
           <div
             v-for="(cell, index) in availableCells"
             :key="index"
@@ -476,43 +489,47 @@ const resetGame = () => {
               cell.isGhost && !cell.isOccupied ? 'opacity-30 bg-pink-500 ' : '',
               cell.isOccupied ? cell.class + ' border border-gray-100 ' : cell.isBedRock ? '' : 'border border-gray-200',
               cell.isBedRock ? '' : ' ',
-              'w-20px h-20px rounded',
+              'w-20px h-20px rounded lg:(w-30px h-30px)',
             ]"
           ></div>
         </div>
         <div class="flex-col mt-5 flex md:hidden">
           <button
             type="button"
-            class=" shadow bg-purple-400 w-10 h-10 rounded-xl mx-auto"
+            :disabled="isPaused"
+            class="shadow bg-gray-700 text-yellow-500 font-extrabold w-10 h-10 rounded-full mx-auto focus:(outline-none ring ring-gray-100) disabled:opacity-50"
             @click="rotate"
-          ></button>
+          >U</button>
           <div class="flex justify-between">
             <button
               type="button"
-            class=" shadow bg-purple-400 w-10 h-10 rounded-xl mx-auto"
-            @click="moveLeft"
-            ></button>
+              :disabled="isPaused"
+              class="shadow bg-gray-700 text-cyan-500 font-extrabold w-10 h-10 rounded-full mx-auto focus:(outline-none ring ring-gray-100) disabled:opacity-50"
+              @click="moveLeft"
+            >L</button>
             <button
               type="button"
-            class=" shadow bg-purple-400 w-10 h-10 rounded-xl mx-auto"
+              :disabled="isPaused"
+              class="shadow bg-gray-700 font-extrabold text-red-500 w-10 h-10 rounded-full mx-auto focus:(outline-none ring ring-gray-100)  disabled:opacity-50"
               @click="moveRight"
-            ></button>
+            >R</button>
           </div>
           <button
             type="button"
-            class=" shadow bg-purple-400 w-10 h-10 rounded-xl mx-auto"
+            :disabled="isPaused"
+            class="shadow bg-gray-700 text-lime-500 font-extrabold w-10 h-10 rounded-full mx-auto focus:(outline-none ring ring-gray-100) disabled:opacity-50"
             @click="moveDown"
-          ></button>
+          >D</button>
         </div>
       </div>
       <div class="flex flex-col ml-10">
-        <div class="bg-transparent w-80px h-80px flex flex-wrap">
+        <div class="bg-transparent w-80px h-80px lg:(w-120px h-120px)  flex flex-wrap">
           <div
             v-for="(cell, index) in previewCells"
             :key="index + 'preview'"
             :class="[
               cell.isOccupied ? cell.class + ' border border-gray-100 ' : '',
-              'w-20px h-20px rounded',
+              'w-20px h-20px rounded lg:(w-30px h-30px)',
             ]"
           ></div>
         </div>
@@ -540,12 +557,7 @@ const resetGame = () => {
               />
               <path d="M16 12L10 16.3301V7.66987L16 12Z" fill="currentColor" />
             </svg>
-            <svg
-              v-else
-              viewBox="0 0 24 24"
-              fill="none"
-              xmlns="http://www.w3.org/2000/svg"
-            >
+            <svg v-else viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
               <path d="M9 9H11V15H9V9Z" fill="currentColor" />
               <path d="M15 15H13V9H15V15Z" fill="currentColor" />
               <path
