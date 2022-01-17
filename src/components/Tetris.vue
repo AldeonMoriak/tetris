@@ -9,6 +9,7 @@ interface Cell {
   isBedRock?: boolean;
   isGhost?: boolean;
   isOccupied: boolean;
+  isHidden?: boolean;
 }
 
 const width = 10;
@@ -23,34 +24,70 @@ let isGameOver = ref(false);
 const isPaused = ref(true);
 
 // fill the empty cells with initial data
-for (let i = 0; i < 200; i++) {
-  const cell: Cell = { class: "", isTaken: false, isOccupied: false };
-  availableCells.value.push(cell);
-}
+const makeInitialCells = () => {
+  availableCells.value = [];
 
-watch(() => score.value,
-(currentScore, previousScore) => {
-  if(currentScore % 500 === 0 && currentScore !== 0) {
-    gameSpeed.value -=100;
+  for (let i = 0; i < 30; i++) {
+    const cell: Cell = {
+      class: "",
+      isTaken: false,
+      isOccupied: false,
+      isHidden: true,
+    };
+    availableCells.value.push(cell);
   }
-});
+  for (let i = 0; i < 200; i++) {
+    const cell: Cell = { class: "", isTaken: false, isOccupied: false };
+    availableCells.value.push(cell);
+  }
 
-// fill the bedrock with taken cells
-for (let i = 0; i < 10; i++) {
-  const cell: Cell = {
-    class: "",
-    isTaken: true,
-    isBedRock: true,
-    isOccupied: false,
-  };
-  availableCells.value.push(cell);
-}
+  // fill the bedrock with taken cells
+  for (let i = 0; i < 10; i++) {
+    const cell: Cell = {
+      class: "",
+      isTaken: true,
+      isBedRock: true,
+      isOccupied: false,
+    };
+    availableCells.value.push(cell);
+  }
 
-// fill the preview cells with initial data
-for (let i = 0; i < 25; i++) {
-  const cell: Cell = { class: "", isTaken: false, isOccupied: false };
-  previewCells.value.push(cell);
-}
+  // fill the preview cells with initial data
+  previewCells.value = [];
+  for (let i = 0; i < 25; i++) {
+    const cell: Cell = { class: "", isTaken: false, isOccupied: false };
+    previewCells.value.push(cell);
+  }
+};
+
+const resetGame = () => {
+  clearInterval(timer);
+  isPaused.value = true;
+  isGameOver.value = false;
+  makeInitialCells();
+  random = Math.floor(Math.random() * theTetrominoes.length);
+  score.value = 0;
+  gameSpeed.value = 1000;
+  message.value = "";
+  currentPosition.value = 4;
+  current.value = theTetrominoes[random][currentRotation];
+  previewRandom = Math.floor(Math.random() * theTetrominoes.length);
+  currentPreview.value = previewTetrominoes[previewRandom];
+  currentRotation = 0;
+};
+
+makeInitialCells();
+
+watch(
+  () => score.value,
+  (currentScore, previousScore) => {
+    if (currentScore % 500 === 0 && currentScore !== 0) {
+      clearInterval(timer);
+      gameSpeed.value -= 100;
+      setTimer();
+    }
+  }
+);
 
 const lTetromino = [
   [1, width + 1, width * 2 + 1, 2],
@@ -239,7 +276,7 @@ const undrawGhost = () => {
 };
 
 const moveDown = () => {
-  if(isGameOver.value) {
+  if (isGameOver.value) {
     return;
   }
   // undrawGhost();
@@ -254,7 +291,7 @@ const moveDown = () => {
 };
 
 const moveLeft = () => {
-  if(isGameOver.value)return
+  if (isGameOver.value) return;
   undraw();
   // undrawGhost();
   const isAtTheEdge = isAtTheEdges("left");
@@ -267,7 +304,7 @@ const moveLeft = () => {
 };
 
 const moveRight = () => {
-  if(isGameOver.value)return
+  if (isGameOver.value) return;
   undraw();
   // undrawGhost();
   const isAtTheEdge = isAtTheEdges("right");
@@ -282,22 +319,22 @@ const moveRight = () => {
 const isAtTheEdges = (direction: string) => {
   return direction === "right"
     ? current.value.some(
-      (cellNumber) => (currentPosition.value + cellNumber + 1) % width === 0
-    )
+        (cellNumber) => (currentPosition.value + cellNumber + 1) % width === 0
+      )
     : current.value.some(
-      (cellNumber) => (currentPosition.value + cellNumber) % width === 0
-    );
+        (cellNumber) => (currentPosition.value + cellNumber) % width === 0
+      );
 };
 const isCellBlocked = () => {
-  return current.value.some(
+  const isBlocked = current.value.some(
     (cellNumber) =>
       availableCells.value[currentPosition.value + cellNumber].isTaken
   );
+  return isBlocked;
 };
 
 const checkRotatedPosition = (P?: number) => {
   P = P || currentPosition.value; //get current position.  Then, check if the piece is near the left side.
-  console.log(P);
   if ((P + 1) % width < 4) {
     //add 1 because the position index can be 1 less than where the piece is (with how they are indexed).
     if (isAtTheEdges("right")) {
@@ -314,7 +351,7 @@ const checkRotatedPosition = (P?: number) => {
 };
 
 const rotate = () => {
-  if(isGameOver.value)return
+  if (isGameOver.value) return;
   undraw();
   // undrawGhost();
 
@@ -351,7 +388,7 @@ const keyController = (e: KeyboardEvent) => {
     case "arrowdown": {
       e.preventDefault();
       moveDown();
-      if(!isGameOver.value) score.value += 1;
+      if (!isGameOver.value) score.value += 1;
       break;
     }
     case "arrowup": {
@@ -374,7 +411,7 @@ const freeze = () => {
         availableCells.value[currentPosition.value + cellNumber + width].isTaken
     )
   ) {
-    current.value.map((cellNumber) => {
+    current.value.forEach((cellNumber) => {
       availableCells.value[cellNumber + currentPosition.value].isTaken = true;
       // availableCells.value[cellNumber + currentPosition.value].class = 'bg-purple-500';
     });
@@ -389,10 +426,14 @@ const toggleGame = () => {
     clearInterval(timer);
     timer = -1;
   } else {
-    timer = setInterval(moveDown, gameSpeed.value);
+    setTimer();
     isPaused.value = false;
     // drawGhost();
   }
+};
+
+const setTimer = () => {
+  timer = setInterval(moveDown, gameSpeed.value);
 };
 
 const addScore = () => {
@@ -435,7 +476,6 @@ let downTimer: number;
 let rightTimer: number;
 let leftTimer: number;
 
-
 const mouseDownLeft = () => {
   leftTimer = setInterval(moveLeft, 100);
 };
@@ -470,24 +510,28 @@ const gameOver = () => {
     clearInterval(timer);
   }
 };
-
-const resetGame = () => {
-  window.location.replace("/");
-};
 </script>
 
 <template>
   <div class="bg-gray-200 min-h-screen">
-    <div class="flex lg:mx-auto max-w-md py-3 lg:py-15">
+    <div class="flex lg:mx-auto max-w-md py-3 lg:py-5">
       <div class="flex flex-col">
-        <div class="w-200px h-400px lg:(w-300px h-600px) flex flex-wrap bg-gray-50 shadow-inner rounded">
+        <div
+          class="w-200px h-400px lg:(w-300px h-600px) flex flex-wrap bg-gray-50 shadow-inner rounded"
+        >
           <div
             v-for="(cell, index) in availableCells"
             :key="index"
+            :id="`cell-${index}`"
             :class="[
+              cell.isHidden ? 'hidden' : '',
               cell.isTaken ? 'opacity-80 ' + cell.class : cell.class,
               cell.isGhost && !cell.isOccupied ? 'opacity-30 bg-pink-500 ' : '',
-              cell.isOccupied ? cell.class + ' border border-gray-100 ' : cell.isBedRock ? '' : 'border border-gray-200',
+              cell.isOccupied
+                ? cell.class + ' border border-gray-100 '
+                : cell.isBedRock
+                ? ''
+                : 'border border-gray-200',
               cell.isBedRock ? '' : ' ',
               'w-20px h-20px rounded lg:(w-30px h-30px)',
             ]"
@@ -499,31 +543,41 @@ const resetGame = () => {
             :disabled="isPaused"
             class="shadow bg-gray-700 text-yellow-500 font-extrabold w-10 h-10 rounded-full mx-auto focus:(outline-none ring ring-gray-100) disabled:opacity-50"
             @click="rotate"
-          >U</button>
+          >
+            U
+          </button>
           <div class="flex justify-between">
             <button
               type="button"
               :disabled="isPaused"
               class="shadow bg-gray-700 text-cyan-500 font-extrabold w-10 h-10 rounded-full mx-auto focus:(outline-none ring ring-gray-100) disabled:opacity-50"
               @click="moveLeft"
-            >L</button>
+            >
+              L
+            </button>
             <button
               type="button"
               :disabled="isPaused"
-              class="shadow bg-gray-700 font-extrabold text-red-500 w-10 h-10 rounded-full mx-auto focus:(outline-none ring ring-gray-100)  disabled:opacity-50"
+              class="shadow bg-gray-700 font-extrabold text-red-500 w-10 h-10 rounded-full mx-auto focus:(outline-none ring ring-gray-100) disabled:opacity-50"
               @click="moveRight"
-            >R</button>
+            >
+              R
+            </button>
           </div>
           <button
             type="button"
             :disabled="isPaused"
             class="shadow bg-gray-700 text-lime-500 font-extrabold w-10 h-10 rounded-full mx-auto focus:(outline-none ring ring-gray-100) disabled:opacity-50"
             @click="moveDown"
-          >D</button>
+          >
+            D
+          </button>
         </div>
       </div>
       <div class="flex flex-col ml-10">
-        <div class="bg-transparent w-80px h-80px lg:(w-120px h-120px)  flex flex-wrap">
+        <div
+          class="bg-transparent w-80px h-80px lg:(w-120px h-120px) flex flex-wrap"
+        >
           <div
             v-for="(cell, index) in previewCells"
             :key="index + 'preview'"
@@ -557,7 +611,12 @@ const resetGame = () => {
               />
               <path d="M16 12L10 16.3301V7.66987L16 12Z" fill="currentColor" />
             </svg>
-            <svg v-else viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <svg
+              v-else
+              viewBox="0 0 24 24"
+              fill="none"
+              xmlns="http://www.w3.org/2000/svg"
+            >
               <path d="M9 9H11V15H9V9Z" fill="currentColor" />
               <path d="M15 15H13V9H15V15Z" fill="currentColor" />
               <path
