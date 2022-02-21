@@ -355,13 +355,13 @@ const rotate = () => {
   undraw();
   // undrawGhost();
 
-  const isAtRight = isAtTheEdges("right");
-  const isAtLeft = isAtTheEdges("left");
   const lastRotationIndex = currentRotation;
   currentRotation =
     currentRotation === current.value.length - 1 ? 0 : currentRotation + 1;
   current.value = theTetrominoes[random][currentRotation];
+  console.log(current.value)
   if (isCellBlocked()) {
+    console.log(lastRotationIndex, currentRotation)
     current.value = theTetrominoes[random][lastRotationIndex];
   }
   checkRotatedPosition();
@@ -466,7 +466,8 @@ const addScore = () => {
         availableCells.value[cell].isOccupied = false;
       });
       const removedCells = availableCells.value.splice(i, 10);
-      availableCells.value = removedCells.concat(availableCells.value);
+      // availableCells.value = removedCells.concat(availableCells.value);
+      availableCells.value.splice(29, 0, ...removedCells);
     }
   }
   if (localScore === 40) score.value += 20;
